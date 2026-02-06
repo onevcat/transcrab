@@ -1,0 +1,59 @@
+---
+import Base from '../../layouts/Base.astro';
+import { listArticles } from '../../shared/content.js';
+
+export async function getStaticPaths() {
+  const PAGE_SIZE = 30;
+  const articles = await listArticles();
+  const totalPages = Math.max(1, Math.ceil(articles.length / PAGE_SIZE));
+
+  // Page 1 is `/` (index.astro). This route starts from page 2.
+  const pages = [];
+  for (let p = 2; p <= totalPages; p++) pages.push(p);
+
+  return pages.map((p) => ({ params: { page: String(p) } }));
+}
+
+const PAGE_SIZE = 30;
+const page = Number(Astro.params.page || '1');
+const articles = await listArticles();
+const totalPages = Math.max(1, Math.ceil(articles.length / PAGE_SIZE));
+const start = (page - 1) * PAGE_SIZE;
+const list = articles.slice(start, start + PAGE_SIZE);
+
+const prevPath = page > 2 ? `/p/${page - 1}/` : '/';
+const nextPath = page < totalPages ? `/p/${page + 1}/` : null;
+---
+
+<Base title="TransCrab" description="水淡如常，月照如初">
+  <h1 class="brand">
+    <img class="brand-mark" src="/assets/transcrab-mark.png" alt="" aria-hidden="true" />
+    <span>TransCrab</span>
+  </h1>
+  <p class="meta">水淡如常，月照如初</p>
+
+  {list.length === 0 ? <p>暂无文章。</p> : null}
+
+  {list.map((a) => (
+    <div style="padding: 1rem 0; border-bottom: 1px solid rgba(127,127,127,.25);">
+      <div><a href={`/a/${a.yyyy}/${a.mm}/${a.slug}/`}>{a.title}</a></div>
+      <div class="meta">
+        <span>{a.dateDisplay ?? ''}</span>
+        {a.sourceUrl ? (
+          <span>
+            {' '}·{' '}
+            <a href={a.sourceUrl} target="_blank" rel="noreferrer">原文</a>
+          </span>
+        ) : null}
+      </div>
+    </div>
+  ))}
+
+  <div class="nav" style="margin-top: 1rem;">
+    {page > 1 ? <a href={prevPath}>← Prev</a> : null}
+    {' '}
+    <span class="meta">Page {page} / {totalPages}</span>
+    {' '}
+    {nextPath ? <a href={nextPath}>Next →</a> : null}
+  </div>
+</Base>

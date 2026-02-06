@@ -1,10 +1,12 @@
 ---
-import Base from '../../layouts/Base.astro';
-import { listArticles, getArticle } from '../../shared/content.js';
+import Base from '../../../../layouts/Base.astro';
+import { listArticles, getArticle } from '../../../../shared/content.js';
 
 export async function getStaticPaths() {
   const articles = await listArticles();
-  return articles.map((a) => ({ params: { slug: a.slug } }));
+  return articles.map((a) => ({
+    params: { yyyy: a.yyyy, mm: a.mm, slug: a.slug },
+  }));
 }
 
 const { slug } = Astro.params;
@@ -12,13 +14,14 @@ const article = await getArticle(slug);
 if (!article) {
   return new Response('Not found', { status: 404 });
 }
-const { html, title, sourceUrl, date } = article;
+const { html, title, sourceUrl, dateDisplay } = article;
 ---
+
 <Base title={title}>
   <div class="nav"><a href="/">← 返回</a></div>
   <h1>{title}</h1>
   <div class="meta">
-    {date ? <span>{date}</span> : null}
+    {dateDisplay ? <span>{dateDisplay}</span> : null}
     {sourceUrl ? <span> · <a href={sourceUrl} target="_blank" rel="noreferrer">原文链接</a></span> : null}
   </div>
 

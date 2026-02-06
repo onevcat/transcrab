@@ -5,6 +5,30 @@ import { marked } from 'marked';
 
 const CONTENT_ROOT = path.resolve(process.cwd(), 'content', 'articles');
 
+function ts(x) {
+  if (!x) return null;
+  const t = Date.parse(x);
+  return Number.isFinite(t) ? t : null;
+}
+
+function pad2(n) {
+  return String(n).padStart(2, '0');
+}
+
+function toYyyyMm(dateStr) {
+  const t = ts(dateStr);
+  if (t === null) return { yyyy: '0000', mm: '00' };
+  const d = new Date(t);
+  return { yyyy: String(d.getUTCFullYear()), mm: pad2(d.getUTCMonth() + 1) };
+}
+
+function dateDisplay(dateStr) {
+  // Display only YYYY-MM-DD even if stored as ISO datetime.
+  if (!dateStr) return '';
+  const s = String(dateStr);
+  return s.length >= 10 ? s.slice(0, 10) : s;
+}
+
 export async function listArticles() {
   let dirs = [];
   try {
@@ -25,21 +49,18 @@ export async function listArticles() {
       const raw = await fs.readFile(zhPath, 'utf-8');
       const fm = matter(raw);
 
-      // Best-effort: use createdAt from meta.json for stable ordering within a day.
-      let createdAt = null;
-      try {
-        const metaRaw = await fs.readFile(metaPath, 'utf-8');
-        const meta = JSON.parse(metaRaw);
-        createdAt = meta?.createdAt ?? null;
-      } catch {
-        // ignore
-      }
+      // NOTE: We use frontmatter `date` as the single source of truth.
+      // It should be an ISO datetime string (preferred) or YYYY-MM-DD.
+      const date = fm.data.date ?? null;
+      const { yyyy, mm } = toYyyyMm(date);
 
       items.push({
         slug,
+        yyyy,
+        mm,
         title: fm.data.title ?? slug,
-        date: fm.data.date ?? null,
-        createdAt,
+        date,
+        dateDisplay: dateDisplay(date),
         sourceUrl: fm.data.sourceUrl ?? null,
       });
     } catch {
@@ -47,21 +68,10 @@ export async function listArticles() {
     }
   }
 
-  function ts(x) {
-    if (!x) return null;
-    const t = Date.parse(x);
-    return Number.isFinite(t) ? t : null;
-  }
-
   items.sort((a, b) => {
-    const ac = ts(a.createdAt);
-    const bc = ts(b.createdAt);
-    if (ac !== null || bc !== null) return (bc ?? -1) - (ac ?? -1);
-
-    // Fallback: date (YYYY-MM-DD) descending.
-    const ad = String(a.date ?? '');
-    const bd = String(b.date ?? '');
-    if (ad !== bd) return bd.localeCompare(ad);
+    const at = ts(a.date);
+    const bt = ts(b.date);
+    if (at !== null || bt !== null) return (bt ?? -1) - (at ?? -1);
 
     // Last resort: slug stable.
     return String(a.slug).localeCompare(String(b.slug));
@@ -76,10 +86,12 @@ export async function getArticle(slug) {
     const raw = await fs.readFile(zhPath, 'utf-8');
     const fm = matter(raw);
     const html = marked.parse(fixStrongAdjacency(fm.content));
+    const date = fm.data.date ?? null;
     return {
       slug,
       title: fm.data.title ?? slug,
-      date: fm.data.date ?? null,
+      date,
+      dateDisplay: dateDisplay(date),
       sourceUrl: fm.data.sourceUrl ?? null,
       html,
     };

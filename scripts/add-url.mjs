@@ -44,12 +44,11 @@ await fs.mkdir(CONTENT_ROOT, { recursive: true });
 
 const html = await fetchHtml(url);
 const { title, markdown } = await htmlToMarkdown(html, url);
-const slug = makeSlug(title || url);
-const dir = path.join(CONTENT_ROOT, slug);
-await fs.mkdir(dir, { recursive: true });
+const baseSlug = makeSlug(title || url);
+const { slug, dir } = await makeUniqueSlugDir(baseSlug);
 
 const now = new Date();
-const date = now.toISOString().slice(0, 10);
+const date = now.toISOString();
 
 const sourceFrontmatter = {
   title: title || slug,
@@ -66,7 +65,6 @@ const meta = {
   date,
   sourceUrl: url,
   targetLang: lang,
-  createdAt: now.toISOString(),
 };
 await fs.writeFile(path.join(dir, 'meta.json'), JSON.stringify(meta, null, 2) + '\n', 'utf-8');
 
@@ -75,7 +73,7 @@ const promptPath = path.join(dir, `translate.${lang}.prompt.txt`);
 await fs.writeFile(promptPath, prompt + '\n', 'utf-8');
 
 // Print a machine-readable summary for wrappers.
-console.log(JSON.stringify({ ok: true, slug, dir, lang, promptPath }, null, 2));
+console.log(JSON.stringify({ ok: true, slug, dir, lang, promptPath, date }, null, 2));
 
 // ----------------
 
@@ -275,6 +273,41 @@ function applyCodeLangHints(doc, pack) {
 function makeSlug(title) {
   const s = slugify(title, { lower: true, strict: true, trim: true });
   return s || `article-${Date.now()}`;
+}
+
+async function existsDir(p) {
+  try {
+    const st = await fs.stat(p);
+    return st.isDirectory();
+  } catch {
+    return false;
+  }
+}
+
+async function makeUniqueSlugDir(baseSlug) {
+  let slug = baseSlug;
+  let dir = path.join(CONTENT_ROOT, slug);
+
+  if (!(await existsDir(dir))) {
+    await fs.mkdir(dir, { recursive: true });
+    return { slug, dir };
+  }
+
+  // If exists, append -2, -3... to avoid overwriting existing articles.
+  for (let i = 2; i < 1000; i++) {
+    slug = `${baseSlug}-${i}`;
+    dir = path.join(CONTENT_ROOT, slug);
+    if (!(await existsDir(dir))) {
+      await fs.mkdir(dir, { recursive: true });
+      return { slug, dir };
+    }
+  }
+
+  // Last resort.
+  slug = `${baseSlug}-${Date.now()}`;
+  dir = path.join(CONTENT_ROOT, slug);
+  await fs.mkdir(dir, { recursive: true });
+  return { slug, dir };
 }
 
 function buildTranslatePrompt(md, targetLang) {

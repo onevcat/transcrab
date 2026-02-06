@@ -1,8 +1,14 @@
 ---
 import Base from '../layouts/Base.astro';
 import { listArticles } from '../shared/content.js';
+
+const PAGE_SIZE = 30;
 const articles = await listArticles();
+const totalPages = Math.max(1, Math.ceil(articles.length / PAGE_SIZE));
+const list = articles.slice(0, PAGE_SIZE);
+const nextPath = totalPages > 1 ? '/p/2/' : null;
 ---
+
 <Base title="TransCrab" description="水淡如常，月照如初">
   <h1 class="brand">
     <img class="brand-mark" src="/assets/transcrab-mark.png" alt="" aria-hidden="true" />
@@ -10,13 +16,13 @@ const articles = await listArticles();
   </h1>
   <p class="meta">水淡如常，月照如初</p>
 
-  {articles.length === 0 ? <p>暂无文章。</p> : null}
+  {list.length === 0 ? <p>暂无文章。</p> : null}
 
-  {articles.map((a) => (
+  {list.map((a) => (
     <div style="padding: 1rem 0; border-bottom: 1px solid rgba(127,127,127,.25);">
-      <div><a href={`/a/${a.slug}`}>{a.title}</a></div>
+      <div><a href={`/a/${a.yyyy}/${a.mm}/${a.slug}/`}>{a.title}</a></div>
       <div class="meta">
-        <span>{a.date ?? ''}</span>
+        <span>{a.dateDisplay ?? ''}</span>
         {a.sourceUrl ? (
           <span>
             {' '}·{' '}
@@ -26,4 +32,12 @@ const articles = await listArticles();
       </div>
     </div>
   ))}
+
+  {totalPages > 1 ? (
+    <div class="nav" style="margin-top: 1rem;">
+      <span class="meta">Page 1 / {totalPages}</span>
+      {' '}
+      {nextPath ? <a href={nextPath}>Next →</a> : null}
+    </div>
+  ) : null}
 </Base>
