@@ -11,6 +11,9 @@ const { title = 'TransCrab', description } = Astro.props;
     <link rel="icon" href="/favicon-32.png" sizes="32x32" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
 
+    <!-- Code highlight theme (Kanagawa-like preference: try Tokyo Night Dark as close lightweight default) -->
+    <link rel="stylesheet" href="/hljs/tokyo-night-dark.css" />
+
     <style is:global>
       :root {
         color-scheme: light dark;
@@ -157,10 +160,27 @@ const { title = 'TransCrab', description } = Astro.props;
         pangu.spacingElementByElement(document.body);
       } catch {}
 
-      // Code highlighting (client-side, lightweight)
+      // Code highlighting (client-side)
+      // Theme is loaded via CSS (see <head>).
       try {
-        const { default: hljs } = await import('https://esm.sh/highlight.js@11.9.0');
-        hljs.highlightAll();
+        const { default: hljs } = await import('highlight.js');
+
+        // If a block declares a language (```swift), respect it.
+        // Otherwise do NOT auto-detect to avoid random languages like abnf/apache/maxima.
+        for (const el of document.querySelectorAll('pre code')) {
+          const cls = el.className || '';
+          const m = cls.match(/language-([a-z0-9_+-]+)/i);
+          if (m) {
+            const lang = m[1].toLowerCase();
+            if (hljs.getLanguage(lang)) {
+              hljs.highlightElement(el);
+              continue;
+            }
+          }
+          // No (valid) language specified: just apply baseline styling.
+          // This prevents noisy autodetection.
+          el.classList.add('hljs');
+        }
       } catch {}
 
       // Image zoom modal
