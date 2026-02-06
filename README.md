@@ -45,7 +45,10 @@ Follow the steps below. You may also refer to `scripts/BOOTSTRAP.md`.
 ### 1) Repo + deployment
 
 - Fork/clone the repo into the user’s workspace
-- Ensure `npm i` and `npm run build` succeed
+- Install dependencies for scripts:
+  - Prefer `npm ci` (recommended for bots / reproducible installs)
+  - Fallback `npm i` if needed
+- (Optional but recommended once) Verify the site builds: `npm run build`
 - Deploy the user’s fork on their chosen provider
   - Default recommendation: Netlify
   - But do not assume Netlify is required
@@ -53,6 +56,10 @@ Follow the steps below. You may also refer to `scripts/BOOTSTRAP.md`.
 Build settings (common for most providers):
 - Build command: `npm run build`
 - Publish directory: `dist`
+
+Runtime note (important):
+- On the user’s device (where the bot runs scripts), you generally **do not** need to run `npm run build`.
+- You *do* need dependencies installed so the scripts can run (prefer `npm ci`).
 
 ### 2) Runtime behavior contract (conversation UX)
 

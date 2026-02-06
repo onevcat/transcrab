@@ -36,8 +36,10 @@ After setup, the human can:
 
 3) Repo setup
 - Clone the repo into the workspace
-- Run `npm i` (or `npm ci`)
-- Run `npm run build`
+- Install dependencies (required for running scripts):
+  - Prefer: `npm ci`
+  - Fallback: `npm i`
+- (Optional but recommended once) Sanity check the site build: `npm run build`
 
 4) Deploy settings (common)
 - Build command: `npm run build`
