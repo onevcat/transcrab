@@ -1,4 +1,4 @@
-# TransCrab
+# 🦀 TransCrab
 
 TransCrab is **OpenClaw-first**: a small, stable capability you add to an OpenClaw assistant so it can turn links into a polished translated reading page.
 
