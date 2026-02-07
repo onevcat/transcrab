@@ -8,7 +8,9 @@ import matter from 'gray-matter';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT = path.resolve(__dirname, '..');
-const CONTENT_ROOT = path.join(ROOT, 'content', 'articles');
+const CONTENT_ROOT = process.env.TRANSCRAB_CONTENT_ROOT
+  ? path.resolve(process.env.TRANSCRAB_CONTENT_ROOT)
+  : path.join(ROOT, 'content', 'articles');
 
 function usage() {
   console.log(`Usage:

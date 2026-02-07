@@ -12,7 +12,9 @@ import { fetch } from 'undici';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT = path.resolve(__dirname, '..');
-const CONTENT_ROOT = path.join(ROOT, 'content', 'articles');
+const CONTENT_ROOT = process.env.TRANSCRAB_CONTENT_ROOT
+  ? path.resolve(process.env.TRANSCRAB_CONTENT_ROOT)
+  : path.join(ROOT, 'content', 'articles');
 
 function usage() {
   console.log(`Usage:
@@ -74,6 +76,9 @@ await fs.writeFile(promptPath, prompt + '\n', 'utf-8');
 
 // Print a machine-readable summary for wrappers.
 console.log(JSON.stringify({ ok: true, slug, dir, lang, promptPath, date }, null, 2));
+
+// Ensure the CLI exits even if HTTP keep-alive leaves sockets open (e.g. in tests/local servers).
+process.exit(0);
 
 // ----------------
 

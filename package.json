@@ -8,7 +8,8 @@
     "build": "astro build",
     "preview": "astro preview",
     "add": "node scripts/add-url.mjs",
-    "lint": "node -c scripts/add-url.mjs"
+    "lint": "node -c scripts/add-url.mjs",
+    "test": "node --test"
   },
   "dependencies": {
     "@mozilla/readability": "^0.6.0",
