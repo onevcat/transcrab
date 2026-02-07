@@ -11,7 +11,10 @@ After setup, the human can:
 - send a URL
 - then send `crab`
 
-…and you will fetch → extract → markdown → **ask the running OpenClaw to translate** → write files → commit/push, and return a deployed page URL.
+…and you will fetch → extract → markdown → **translate automatically (you do it)** → write files → commit/push, and return a deployed page URL.
+
+> Critical UX rule: **Never ask the user to manually translate or to paste back translations.**
+> The assistant must do the translation as part of the workflow.
 
 > Important: scripts intentionally do **not** call `openclaw agent` to avoid nested/recursive agent execution.
 
@@ -33,6 +36,11 @@ After setup, the human can:
 - Which hosting provider do they prefer? (Netlify / Vercel / Cloudflare Pages / GitHub Pages / etc.)
 - Do they already have a GitHub repo ready (fork) or should you fork `onevcat/transcrab` for them?
 - Do they already have a site URL, or should you create/configure one and connect it to the repo?
+
+Platform note (GitHub Pages):
+- Repo pages are served under `/<repo>/`.
+- You must set `astro.config.mjs` with a real `site` (not localhost) and `base: '/<repo>/'` (trailing slash).
+- Internal links/assets should respect `import.meta.env.BASE_URL` (or be relative), otherwise the home page may load but article pages/assets 404.
 
 3) Repo setup
 - Clone the repo into the workspace
@@ -83,8 +91,9 @@ On `URL + crab`:
 
 Then:
 
-1) Read the prompt file and translate it in the **running OpenClaw conversation**.
-2) Save or pipe the translated Markdown back into the repo:
+1) Read the prompt file and translate it **yourself** in the running OpenClaw conversation.
+   - Do not ask the user to do this step.
+2) Write the translated Markdown into the repo (temp file is fine), then apply it:
 
 ```bash
 # Option A: pipe via stdin

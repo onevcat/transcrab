@@ -34,6 +34,18 @@ https://github.com/onevcat/transcrab
 
 Follow the steps below. You may also refer to `scripts/BOOTSTRAP.md`.
 
+### Two lessons from real-world cold-start tests (read this first)
+
+1) **GitHub Pages needs explicit site/base config**
+   - When deploying to GitHub Pages under a repo path (e.g. `https://USER.github.io/REPO/`), you must set Astro config correctly.
+   - `astro.config.mjs` must use a real `site` (not `localhost`) and a correct `base` **with a trailing slash**.
+   - If you don’t, home page might work but internal links/assets will 404.
+
+2) **The assistant must translate automatically (never ask the user to paste translations)**
+   - Scripts do not call `openclaw agent` (by design), but the *running assistant* is still responsible for doing the translation.
+   - Do **not** degrade UX by asking the user to manually translate or paste back the translation.
+   - Your job is: generate prompt → translate in-conversation → apply translation → commit/push → reply with URL.
+
 ### 0) Ask the user for required info
 
 - Their fork repo URL (or permission to fork `onevcat/transcrab` into their account)
@@ -43,6 +55,27 @@ Follow the steps below. You may also refer to `scripts/BOOTSTRAP.md`.
 - Preferred model (optional; if omitted, use the user's OpenClaw default model)
 
 ### 1) Repo + deployment
+
+#### Hosting providers: common setup vs platform quirks
+
+Most providers can deploy this Astro static site with:
+- Build command: `npm run build`
+- Publish directory: `dist`
+
+But **platforms differ** in one important way:
+
+- **Netlify / Vercel / Cloudflare Pages**: usually serve from the domain root. Base-path issues are rare.
+- **GitHub Pages (repo pages)**: serves from `/<repo>/` — you must configure Astro:
+
+```js
+// astro.config.mjs
+export default defineConfig({
+  site: 'https://<user>.github.io',
+  base: '/<repo>/', // NOTE trailing slash
+});
+```
+
+Also ensure your internal links and static assets respect `import.meta.env.BASE_URL` (or are relative).
 
 - Fork/clone the repo into the user’s workspace
 - Install dependencies for scripts:
@@ -127,6 +160,12 @@ Before running automation on a user’s machine, you should quickly read the scr
 ### 5) Translation mechanism (what actually happens)
 
 Translation is intentionally **not performed by scripts**.
+
+**However, translation IS performed automatically by the running OpenClaw assistant.**
+
+- Do **not** ask the human to manually translate content.
+- Do **not** ask the human to paste a translated result back.
+- If translation output is too long for one message, you (the assistant) should chunk your own output internally (or write to a temp file) and still complete `apply-translation` yourself.
 
 Why? Calling `openclaw agent` from inside a script can cause nested/recursive agent execution and hang in real deployments.
 
