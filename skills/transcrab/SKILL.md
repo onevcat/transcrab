@@ -50,11 +50,50 @@ cd ~/Projects/transcrab-private
 
 If any check fails, ask the user what to do.
 
+## Pipeline (must complete end-to-end)
+
+`./scripts/run-crab.sh` only **fetches + writes source + writes a translation prompt**.
+You must finish the job: **translate → apply → commit/push → verify deploy**.
+
+1) Generate files + capture the JSON output (need `slug` + `promptPath`):
+
+```bash
+cd ~/Projects/transcrab-private
+./scripts/run-crab.sh "<url>" --lang zh
+```
+
+2) Read `promptPath`, translate it **yourself** (do not ask the user), and save to a temp file.
+   - Format: first line is `# <translated title>`, blank line, then body.
+   - Do **not** wrap in code fences.
+
+3) Apply translation (writes `content/articles/<slug>/zh.md`):
+
+```bash
+node scripts/apply-translation.mjs <slug> --lang zh --in /path/to/translated.zh.md
+```
+
+4) Commit + push to the private repo:
+
+```bash
+git add content/articles/<slug>/
+git commit -m "Add article: <slug>"
+git push origin HEAD
+```
+
+5) Verify deployment before replying:
+
+```bash
+curl -I -L https://transcrab.onev.cat/a/<yyyy>/<mm>/<slug>/
+```
+
+Only reply with the final page URL after it returns **200**.
+
 ## Output
 
-- Commit + push results to the user’s private repo
-- Reply with the deployed page URL.
-  - Canonical path (this template): `/a/<yyyy>/<mm>/<slug>/` (yyyy/mm derived from the article `date` in `zh.md`, UTC).
+- Private repo has the new article **including `zh.md`** (and is pushed)
+- Deployed page URL is reachable (HTTP 200)
+- Reply with the deployed page URL
+  - Canonical path: `/a/<yyyy>/<mm>/<slug>/` (yyyy/mm derived from `date` in `zh.md`, UTC)
 
 ## Customization points
 

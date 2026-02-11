@@ -103,7 +103,7 @@ cat /path/to/translated.md | node scripts/apply-translation.mjs <slug> --lang zh
 node scripts/apply-translation.mjs <slug> --lang zh --in /path/to/translated.md
 ```
 
-Finally, commit + push to `main`, and reply with the deployed page URL.
+Finally, commit + push to `main`, **verify the deployed URL returns HTTP 200**, and reply with the deployed page URL.
 
 ## Updates
 

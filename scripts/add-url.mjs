@@ -83,7 +83,23 @@ const articlePath = `/a/${yyyy}/${mm}/${slug}/`;
 
 console.log(
   JSON.stringify(
-    { ok: true, slug, dir, lang, promptPath, date, yyyy, mm, articlePath },
+    {
+      ok: true,
+      slug,
+      dir,
+      lang,
+      promptPath,
+      date,
+      yyyy,
+      mm,
+      articlePath,
+      nextSteps: [
+        `Translate: read ${promptPath} and translate to ${lang} (H1 title + blank line + body)`,
+        `Apply: node scripts/apply-translation.mjs ${slug} --lang ${lang} --in /path/to/translated.${lang}.md`,
+        'Commit: git add content/articles/<slug>/ && git commit && git push',
+        'Verify: wait for deploy and ensure the final URL returns HTTP 200',
+      ],
+    },
     null,
     2
   )
