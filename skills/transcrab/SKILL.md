@@ -53,7 +53,8 @@ If any check fails, ask the user what to do.
 ## Output
 
 - Commit + push results to the user’s private repo
-- Reply with the deployed page URL
+- Reply with the deployed page URL.
+  - Canonical path (this template): `/a/<yyyy>/<mm>/<slug>/` (yyyy/mm derived from the article `date` in `zh.md`, UTC).
 
 ## Customization points
 

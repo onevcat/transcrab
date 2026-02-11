@@ -75,7 +75,19 @@ const promptPath = path.join(dir, `translate.${lang}.prompt.txt`);
 await fs.writeFile(promptPath, prompt + '\n', 'utf-8');
 
 // Print a machine-readable summary for wrappers.
-console.log(JSON.stringify({ ok: true, slug, dir, lang, promptPath, date }, null, 2));
+// NOTE: yyyy/mm are derived from `date` (UTC), and match the site's canonical route:
+//   /a/<yyyy>/<mm>/<slug>/
+const yyyy = String(now.getUTCFullYear());
+const mm = String(now.getUTCMonth() + 1).padStart(2, '0');
+const articlePath = `/a/${yyyy}/${mm}/${slug}/`;
+
+console.log(
+  JSON.stringify(
+    { ok: true, slug, dir, lang, promptPath, date, yyyy, mm, articlePath },
+    null,
+    2
+  )
+);
 
 // Ensure the CLI exits even if HTTP keep-alive leaves sockets open (e.g. in tests/local servers).
 process.exit(0);

@@ -193,6 +193,9 @@ After the assistant translates, write:
 
 Then commit + push to `main` and reply with the deployed page URL.
 
+Canonical deployed path (this template):
+- `/a/<yyyy>/<mm>/<slug>/` (`yyyy/mm` derived from the article `date` in `zh.md`, UTC)
+
 ---
 
 ## Updating (when this template changes)
