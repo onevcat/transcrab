@@ -102,12 +102,17 @@ export async function getArticle(slug) {
 
 // CommonMark-style emphasis rules are strict about delimiter adjacency.
 // In Chinese translations we often have patterns like `**Item：**Item` without a space.
-// Many parsers render this literally. We insert a space after a closing strong marker
-// when it is immediately followed by a CJK/Latin/digit character.
+// Some parsers (incl. marked) may render this literally. We insert a space AFTER a
+// *closing* strong marker when it is immediately followed by a CJK/Latin/digit character.
+//
+// Important: only treat `**` / `__` as *closing* when it is preceded by a non-whitespace
+// character. This avoids false matches across tables like:
+//   | **Task** | **99.56%** |
+// where a naive `**...**` matcher could “close” on the next cell's opener and corrupt it.
 function fixStrongAdjacency(md) {
   return md
-    // **bold**Word -> **bold** Word
-    .replace(/(\*\*[^\n]*?\*\*)(?=[0-9A-Za-z\u4E00-\u9FFF])/g, '$1 ')
-    // __bold__Word -> __bold__ Word
-    .replace(/(__[^\n]*?__)(?=[0-9A-Za-z\u4E00-\u9FFF])/g, '$1 ');
+    // ...**Word -> ...** Word
+    .replace(/(\S)\*\*(?=[0-9A-Za-z\u4E00-\u9FFF])/g, '$1** ')
+    // ...__Word -> ...__ Word
+    .replace(/(\S)__(?=[0-9A-Za-z\u4E00-\u9FFF])/g, '$1__ ');
 }
