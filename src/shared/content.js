@@ -110,13 +110,8 @@ export async function getArticle(slug) {
 //   | **Task** | **99.56%** |
 // where a naive `**...**` matcher could “close” on the next cell's opener and corrupt it.
 function fixStrongAdjacency(md) {
-  // Insert a space AFTER a closing ** only when:
-  // 1. It's truly a closing delimiter (the ** is NOT followed by more ** or __)
-  // 2. The character after is alphanumeric or CJK
-  // 3. The character BEFORE the ** is NOT punctuation (avoid inserting space after Chinese/fullwidth punctuation)
-  return md
-    // Pattern: (non-punct)**(not followed by * or _)alphanum -> $1** $2
-    .replace(/([^\u3000-\u303F\uFF00-\uFFEF.,;:!?。！？、：；""''（）【】《》])\*\*([^*_\s])(?=[0-9A-Za-z\u4E00-\u9FFF])/g, '$1** $2')
-    // Same for __
-    .replace(/([^\u3000-\u303F\uFF00-\uFFEF.,;:!?。！？、：；""''（）【】《》])__([ ^_\s])(?=[0-9A-Za-z\u4E00-\u9FFF])/g, '$1__ $2');
+  // NOTE: Disabled. This render-time tweak was inserting spaces inside emphasis
+  // in some CJK cases (e.g. `**我们` -> `** 我们`) which breaks bold rendering.
+  // We now normalize emphasis in the content pipeline instead (see apply-translation.mjs).
+  return md;
 }
