@@ -5,6 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Readability } from '@mozilla/readability';
 import TurndownService from 'turndown';
+import { gfm } from 'turndown-plugin-gfm';
 import matter from 'gray-matter';
 import slugify from 'slugify';
 import { fetch } from 'undici';
@@ -153,6 +154,10 @@ async function htmlToMarkdown(html, baseUrl) {
     codeBlockStyle: 'fenced',
     emDelimiter: '*',
   });
+
+  // Enable GitHub-Flavored Markdown conversions (notably: tables).
+  // Without this, <table> elements get flattened into loose text lines.
+  turndown.use(gfm);
 
   // Track guessed/explicit languages while converting.
   // We'll use it to set a page-level default language for code fences that have no info string.
