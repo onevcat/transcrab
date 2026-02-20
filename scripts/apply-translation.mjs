@@ -35,6 +35,73 @@ function argValue(args, key, def = null) {
   return def;
 }
 
+function normalizeEmphasisSpacing(md) {
+  const text = String(md || '');
+  const lines = text.split(/\r?\n/);
+  let inFence = false;
+  let fenceToken = null;
+
+  const normalizeOutsideInlineCode = (s) => {
+    // Split by backticks; normalize only outside inline code segments.
+    const parts = s.split(/(`+)/);
+    let out = '';
+    let inInline = false;
+    let tickRun = '';
+
+    for (const p of parts) {
+      if (/^`+$/.test(p)) {
+        // Toggle inline code on each backtick run.
+        if (!inInline) {
+          inInline = true;
+          tickRun = p;
+        } else {
+          inInline = false;
+          tickRun = '';
+        }
+        out += p;
+        continue;
+      }
+
+      if (inInline) {
+        out += p;
+        continue;
+      }
+
+      // Trim whitespace just inside `**...**` spans.
+      // This avoids breaking normal spaces outside emphasis, e.g. `success.** Modern`.
+      const edgeWs = /^[\t \u00A0\u3000]+|[\t \u00A0\u3000]+$/g;
+      out += p.replace(/\*\*([\s\S]*?)\*\*/g, (m, inner) => {
+        const t = String(inner).replace(edgeWs, '');
+        return `**${t}**`;
+      });
+    }
+
+    return out;
+  };
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const m = line.match(/^(```+|~~~+)(.*)$/);
+    if (m) {
+      const token = m[1];
+      if (!inFence) {
+        inFence = true;
+        fenceToken = token;
+      } else if (token === fenceToken) {
+        inFence = false;
+        fenceToken = null;
+      }
+      continue;
+    }
+
+    if (inFence) continue;
+
+    lines[i] = normalizeOutsideInlineCode(line);
+  }
+
+  return lines.join('\n');
+}
+
 async function readStdin() {
   return await new Promise((resolve, reject) => {
     let data = '';
@@ -86,6 +153,10 @@ translated = translated
   .replace(/^```[a-zA-Z]*\n/, '')
   .replace(/\n```\s*$/, '')
   .trim() + '\n';
+
+// Normalize emphasis markers so CommonMark can render them reliably.
+// Fixes patterns like `** some words**` or `**some words **`.
+translated = normalizeEmphasisSpacing(translated);
 
 // If the first non-empty line is an H1, use it as translated title and
 // remove it from the body to avoid duplicated titles on the page.

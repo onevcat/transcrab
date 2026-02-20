@@ -159,6 +159,28 @@ async function htmlToMarkdown(html, baseUrl) {
   // Without this, <table> elements get flattened into loose text lines.
   turndown.use(gfm);
 
+  // Trim whitespace inside emphasis tags.
+  // Some sites emit <strong> some words</strong>, which would become `** some words**`
+  // and fails to render as bold in CommonMark.
+  turndown.addRule('strongTrim', {
+    filter(node) {
+      return node.nodeName === 'STRONG' || node.nodeName === 'B';
+    },
+    replacement(content) {
+      const t = String(content || '').replace(/^\s+|\s+$/g, '');
+      return t ? `**${t}**` : '';
+    },
+  });
+  turndown.addRule('emTrim', {
+    filter(node) {
+      return node.nodeName === 'EM' || node.nodeName === 'I';
+    },
+    replacement(content) {
+      const t = String(content || '').replace(/^\s+|\s+$/g, '');
+      return t ? `*${t}*` : '';
+    },
+  });
+
   // Track guessed/explicit languages while converting.
   // We'll use it to set a page-level default language for code fences that have no info string.
   const fenceLangCounts = new Map();
