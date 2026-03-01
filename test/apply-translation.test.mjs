@@ -41,3 +41,32 @@ test('apply-translation.mjs: extracts H1 title and writes frontmatter', () => {
   assert.ok(!/^#\s+/m.test(parsed.content.trim()));
   assert.match(parsed.content, /这是正文第一段/);
 });
+
+test('apply-translation.mjs: tolerates missing frontmatter fields', () => {
+  const tmp = mkdtempSync(path.join(os.tmpdir(), 'transcrab-test-'));
+  const contentRoot = path.join(tmp, 'content', 'articles');
+  const slug = 't2';
+  const dir = path.join(contentRoot, slug);
+  fs.mkdirSync(dir, { recursive: true });
+
+  // No frontmatter at all
+  writeFileSync(path.join(dir, 'source.md'), 'Body only', 'utf8');
+
+  const translated = `# 标题\n\n正文`;
+  const inFile = path.join(tmp, 'translated.md');
+  writeFileSync(inFile, translated, 'utf8');
+
+  const script = path.resolve('scripts/apply-translation.mjs');
+  const r = spawnSync(process.execPath, [script, slug, '--lang', 'zh', '--in', inFile], {
+    env: { ...process.env, TRANSCRAB_CONTENT_ROOT: contentRoot },
+    encoding: 'utf8',
+  });
+  assert.equal(r.status, 0, r.stderr || r.stdout);
+
+  const zh = readFileSync(path.join(dir, 'zh.md'), 'utf8');
+  const parsed = matter(zh);
+  assert.equal(parsed.data.title, '标题');
+  assert.equal(parsed.data.lang, 'zh');
+  // date should be auto-filled
+  assert.ok(parsed.data.date);
+});
