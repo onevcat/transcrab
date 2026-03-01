@@ -10,6 +10,8 @@ import matter from 'gray-matter';
 import slugify from 'slugify';
 import { fetch } from 'undici';
 
+import { extractXStatusId, fetchXArticleMarkdownFromStatusId } from './x-article.mjs';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT = path.resolve(__dirname, '..');
@@ -45,8 +47,20 @@ const lang = argValue(args, '--lang', 'zh');
 
 await fs.mkdir(CONTENT_ROOT, { recursive: true });
 
-const html = await fetchHtml(url);
-const { title, markdown } = await htmlToMarkdown(html, url);
+// x.com / twitter.com status URLs are frequently blocked by bot detection when fetched directly.
+// For these, prefer fxtwitter API which provides structured article content.
+const xStatusId = extractXStatusId(url);
+
+let title;
+let markdown;
+
+if (xStatusId) {
+  ({ title, markdown } = await fetchXArticleMarkdownFromStatusId(xStatusId));
+} else {
+  const html = await fetchHtml(url);
+  ({ title, markdown } = await htmlToMarkdown(html, url));
+}
+
 const baseSlug = makeSlug(title || url);
 const { slug, dir } = await makeUniqueSlugDir(baseSlug);
 
@@ -71,7 +85,9 @@ const meta = {
 };
 await fs.writeFile(path.join(dir, 'meta.json'), JSON.stringify(meta, null, 2) + '\n', 'utf-8');
 
-const prompt = buildTranslatePrompt(markdown, lang);
+// Ensure the title is part of the translation input.
+// The apply-translation step will extract the translated H1 and use it as the page title.
+const prompt = buildTranslatePrompt(`# ${title || slug}\n\n${markdown}`, lang);
 const promptPath = path.join(dir, `translate.${lang}.prompt.txt`);
 await fs.writeFile(promptPath, prompt + '\n', 'utf-8');
 

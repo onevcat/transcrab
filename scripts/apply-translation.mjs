@@ -35,6 +35,10 @@ function argValue(args, key, def = null) {
   return def;
 }
 
+function stripUndefined(obj) {
+  return Object.fromEntries(Object.entries(obj || {}).filter(([, v]) => v !== undefined));
+}
+
 function normalizeEmphasisSpacing(md) {
   const text = String(md || '');
   const lines = text.split(/\r?\n/);
@@ -175,12 +179,12 @@ let titleOverride = null;
   }
 }
 
-const outFrontmatter = {
+const outFrontmatter = stripUndefined({
   title: titleOverride || fm.title || slug,
-  date: fm.date,
+  date: fm.date || new Date().toISOString(),
   sourceUrl: fm.sourceUrl,
   lang,
-};
+});
 
 const outMd = matter.stringify(translated, outFrontmatter);
 const outPath = path.join(dir, `${lang}.md`);
