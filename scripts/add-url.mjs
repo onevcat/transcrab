@@ -45,8 +45,7 @@ const lang = argValue(args, '--lang', 'zh');
 
 await fs.mkdir(CONTENT_ROOT, { recursive: true });
 
-const html = await fetchHtml(url);
-const { title, markdown } = await htmlToMarkdown(html, url);
+const { title, markdown } = await resolveSourceToMarkdown(url);
 const baseSlug = makeSlug(title || url);
 const { slug, dir } = await makeUniqueSlugDir(baseSlug);
 
@@ -110,6 +109,159 @@ console.log(
 process.exit(0);
 
 // ----------------
+
+async function resolveSourceToMarkdown(url) {
+  // Prefer fxtwitter for x.com/twitter status links, because direct fetch can be blocked
+  // and article blocks include MEDIA entities that we can map back to inline images.
+  if (isXStatusUrl(url)) {
+    try {
+      return await xStatusToMarkdown(url);
+    } catch (e) {
+      // Fallback to the generic HTML pipeline if API extraction fails.
+      console.warn(`[x-article] fallback failed for ${url}: ${e?.message || e}`);
+    }
+  }
+
+  const html = await fetchHtml(url);
+  return await htmlToMarkdown(html, url);
+}
+
+function isXStatusUrl(rawUrl) {
+  try {
+    const u = new URL(rawUrl);
+    const host = u.hostname.toLowerCase();
+    if (!(host === 'x.com' || host === 'www.x.com' || host === 'twitter.com' || host === 'www.twitter.com')) {
+      return false;
+    }
+    return /\/status\/\d+/.test(u.pathname);
+  } catch {
+    return false;
+  }
+}
+
+function extractTweetId(rawUrl) {
+  const m = String(rawUrl || '').match(/\/status\/(\d+)/);
+  return m?.[1] || null;
+}
+
+async function xStatusToMarkdown(rawUrl) {
+  const tweetId = extractTweetId(rawUrl);
+  if (!tweetId) throw new Error('Cannot extract tweet id from URL');
+
+  const api = `https://api.fxtwitter.com/status/${tweetId}`;
+  const res = await fetch(api, {
+    headers: {
+      'user-agent':
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36',
+      accept: 'application/json',
+    },
+  });
+
+  if (!res.ok) throw new Error(`fxtwitter fetch failed: ${res.status} ${res.statusText}`);
+
+  const data = await res.json();
+  const article = data?.tweet?.article;
+  const title = article?.title || data?.tweet?.author?.name || rawUrl;
+  const blocks = Array.isArray(article?.content?.blocks) ? article.content.blocks : [];
+
+  if (!blocks.length) {
+    throw new Error('fxtwitter payload has no article content blocks');
+  }
+
+  const entityMapEntries = Array.isArray(article?.content?.entityMap)
+    ? article.content.entityMap
+    : Object.entries(article?.content?.entityMap || {}).map(([key, value]) => ({ key, value }));
+
+  const entityMap = new Map(entityMapEntries.map((e) => [String(e.key), e.value]));
+  const mediaById = new Map(
+    (article?.media_entities || []).map((m) => [String(m.media_id), m])
+  );
+
+  const lines = [];
+  let olIndex = 1;
+
+  for (const block of blocks) {
+    const type = block?.type || 'unstyled';
+
+    if (type === 'atomic') {
+      const mediaUrl = pickAtomicMediaUrl(block, entityMap, mediaById);
+      if (mediaUrl) {
+        lines.push(`![](${mediaUrl})`);
+        lines.push('');
+      }
+      continue;
+    }
+
+    const text = withEntityLinks(block?.text || '', block?.entityRanges || [], entityMap).trim();
+    if (!text) {
+      if (type !== 'unordered-list-item' && type !== 'ordered-list-item') {
+        lines.push('');
+      }
+      continue;
+    }
+
+    if (type === 'header-two') {
+      lines.push(`## ${text}`);
+      lines.push('');
+      olIndex = 1;
+      continue;
+    }
+
+    if (type === 'unordered-list-item') {
+      lines.push(`- ${text}`);
+      continue;
+    }
+
+    if (type === 'ordered-list-item') {
+      lines.push(`${olIndex}. ${text}`);
+      olIndex += 1;
+      continue;
+    }
+
+    // unstyled / blockquote / fallback
+    lines.push(text);
+    lines.push('');
+    olIndex = 1;
+  }
+
+  const markdown = lines.join('\n').replace(/\n{3,}/g, '\n\n').trim() + '\n';
+  return { title: String(title).trim(), markdown };
+}
+
+function withEntityLinks(text, entityRanges, entityMap) {
+  if (!text || !Array.isArray(entityRanges) || entityRanges.length === 0) return text;
+
+  const ranges = [...entityRanges]
+    .filter((r) => Number.isInteger(r?.offset) && Number.isInteger(r?.length) && r.length > 0)
+    .sort((a, b) => b.offset - a.offset);
+
+  let out = text;
+  for (const r of ranges) {
+    const entity = entityMap.get(String(r.key));
+    if (!entity || entity.type !== 'LINK') continue;
+    const url = entity?.data?.url;
+    if (!url) continue;
+
+    const seg = out.slice(r.offset, r.offset + r.length);
+    if (!seg) continue;
+    out = `${out.slice(0, r.offset)}[${seg}](${url})${out.slice(r.offset + r.length)}`;
+  }
+  return out;
+}
+
+function pickAtomicMediaUrl(block, entityMap, mediaById) {
+  const ranges = Array.isArray(block?.entityRanges) ? block.entityRanges : [];
+  for (const r of ranges) {
+    const entity = entityMap.get(String(r.key));
+    if (!entity || entity.type !== 'MEDIA') continue;
+    const mediaId = String(entity?.data?.mediaItems?.[0]?.mediaId || '');
+    if (!mediaId) continue;
+    const m = mediaById.get(mediaId);
+    const u = m?.media_info?.original_img_url;
+    if (u) return u;
+  }
+  return null;
+}
 
 async function fetchHtml(url) {
   const res = await fetch(url, {
