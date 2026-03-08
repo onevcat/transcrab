@@ -4,6 +4,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import matter from 'gray-matter';
+import { lintTranslation, autoFixTranslation } from './lint-translation.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -161,6 +162,13 @@ translated = translated
   .trim() + '\n';
 
 translated = normalizeEmphasisSpacing(translated);
+
+// Quality gate phase A: deterministic lint + auto-fix for common CN punctuation issues.
+const lintBefore = lintTranslation(translated);
+const fixed = autoFixTranslation(translated);
+translated = fixed.text;
+const lintAfter = lintTranslation(translated);
+
 const normalizedWithTitle = translated;
 
 let titleOverride = null;
@@ -180,6 +188,21 @@ let titleOverride = null;
 const executionMode = await loadExecutionMode(dir);
 const isRefined = executionMode === 'refined';
 
+const lintReportPath = path.join(dir, 'lint.report.json');
+await fs.writeFile(
+  lintReportPath,
+  JSON.stringify(
+    {
+      before: lintBefore,
+      after: lintAfter,
+      autoFixed: fixed.changed,
+    },
+    null,
+    2
+  ) + '\n',
+  'utf8'
+);
+
 if (stage === 'draft') {
   const draftPath = path.join(dir, '03-draft.md');
   await fs.writeFile(draftPath, normalizedWithTitle, 'utf8');
@@ -190,7 +213,7 @@ if (stage === 'draft') {
     await fs.writeFile(critiquePath, quickCritiqueMarkdown(normalizedWithTitle), 'utf8');
   }
 
-  console.log(JSON.stringify({ ok: true, stage, slug, executionMode, draftPath, critiquePath }, null, 2));
+  console.log(JSON.stringify({ ok: true, stage, slug, executionMode, draftPath, critiquePath, lintReportPath, lintScore: lintAfter.score, autoFixed: fixed.changed }, null, 2));
   process.exit(0);
 }
 
@@ -218,4 +241,4 @@ const outMd = matter.stringify(translated, outFrontmatter);
 const outPath = path.join(dir, `${lang}.md`);
 await fs.writeFile(outPath, outMd, 'utf-8');
 
-console.log(JSON.stringify({ ok: true, stage, slug, lang, executionMode, outPath }, null, 2));
+console.log(JSON.stringify({ ok: true, stage, slug, lang, executionMode, outPath, lintReportPath, lintScore: lintAfter.score, autoFixed: fixed.changed }, null, 2));

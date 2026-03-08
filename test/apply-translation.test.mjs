@@ -122,6 +122,36 @@ test('apply-translation.mjs: rejects invalid stage', () => {
   assert.match(r.stderr + r.stdout, /Invalid --stage/);
 });
 
+test('apply-translation.mjs: final stage applies punctuation auto-fix and writes lint report', () => {
+  const { tmp, contentRoot, slug, dir } = setupArticleFixture();
+
+  writeFileSync(
+    path.join(dir, 'translation.profile.json'),
+    JSON.stringify({ executionMode: 'refined' }, null, 2),
+    'utf8'
+  );
+  writeFileSync(path.join(dir, '03-draft.md'), '# Draft\n\nold', 'utf8');
+
+  const translated = `# 最终标题\n\n问题是? 这段中文?`;
+  const inFile = path.join(tmp, 'final-lint.md');
+  writeFileSync(inFile, translated, 'utf8');
+
+  const script = path.resolve('scripts/apply-translation.mjs');
+  const r = spawnSync(process.execPath, [script, slug, '--lang', 'zh', '--in', inFile, '--stage', 'final'], {
+    env: { ...process.env, TRANSCRAB_CONTENT_ROOT: contentRoot },
+    encoding: 'utf8',
+  });
+  assert.equal(r.status, 0, r.stderr || r.stdout);
+
+  const out = JSON.parse(r.stdout.trim());
+  assert.equal(out.autoFixed, true);
+  assert.ok(fs.existsSync(path.join(dir, 'lint.report.json')));
+
+  const zh = readFileSync(path.join(dir, 'zh.md'), 'utf8');
+  assert.match(zh, /问题在于：/);
+  assert.match(zh, /中文？/);
+});
+
 test('apply-translation.mjs: final stage writes revision notes for refined flow', () => {
   const { tmp, contentRoot, slug, dir } = setupArticleFixture();
 
