@@ -1,0 +1,46 @@
+{
+  "slug": "yann-lecuns-ami-labs-raises-dollar103b-to-build-world-models",
+  "title": "Yann LeCun’s AMI Labs raises $1.03B to build world models",
+  "date": "2026-03-11T01:22:55.197Z",
+  "sourceUrl": "https://techcrunch.com/2026/03/09/yann-lecuns-ami-labs-raises-1-03-billion-to-build-world-models/",
+  "targetLang": "zh",
+  "translationProfile": {
+    "mode": "auto",
+    "audience": "business",
+    "style": "business",
+    "steps": [
+      "auto-analyze",
+      "translate"
+    ],
+    "executionMode": "refined",
+    "autoProfile": {
+      "requestedMode": "auto",
+      "topic": "business",
+      "confidence": 0.78,
+      "resolved": {
+        "mode": "refined",
+        "style": "business",
+        "audience": "business",
+        "chunkThreshold": 4000,
+        "chunkMaxWords": 5000,
+        "glossary": []
+      },
+      "metrics": {
+        "words": 910,
+        "codeBlocks": 0,
+        "tableRows": 0,
+        "headings": 0,
+        "links": 9,
+        "businessHits": 5,
+        "lifeHits": 1,
+        "isLong": false,
+        "isVeryLong": false,
+        "isTechnical": false
+      },
+      "reasons": [
+        "公开发布默认使用 refined 流程，优先质量与稳定性",
+        "商业关键词命中较高，判定为 business"
+      ]
+    }
+  }
+}
