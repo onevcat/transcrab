@@ -5,6 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import matter from 'gray-matter';
 import { lintTranslation, autoFixTranslation } from './lint-translation.mjs';
+import { restoreInlineSvgFigurePlaceholders } from './lib/inline-svg-placeholders.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -129,6 +130,17 @@ async function loadExecutionMode(dir) {
   }
 }
 
+async function loadInlineSvgPlaceholders(dir) {
+  const p = path.join(dir, 'inline-svg.placeholders.json');
+  try {
+    const raw = await fs.readFile(p, 'utf8');
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr : [];
+  } catch {
+    return [];
+  }
+}
+
 const args = process.argv.slice(2);
 if (args.length === 0 || args.includes('-h') || args.includes('--help')) {
   usage();
@@ -162,6 +174,19 @@ translated = translated
   .trim() + '\n';
 
 translated = normalizeEmphasisSpacing(translated);
+
+const inlineSvgPlaceholders = await loadInlineSvgPlaceholders(dir);
+if (inlineSvgPlaceholders.length > 0) {
+  const restored = restoreInlineSvgFigurePlaceholders(translated, inlineSvgPlaceholders);
+  if (restored.missing.length > 0) {
+    const preview = restored.missing.slice(0, 5).join(', ');
+    throw new Error(
+      `Missing inline SVG placeholders in translation (${restored.missing.length} missing). ` +
+      `Keep tokens unchanged, e.g. ${preview}`
+    );
+  }
+  translated = restored.markdown;
+}
 
 // Quality gate phase A: deterministic lint + auto-fix for common CN punctuation issues.
 const lintBefore = lintTranslation(translated);
@@ -213,7 +238,7 @@ if (stage === 'draft') {
     await fs.writeFile(critiquePath, quickCritiqueMarkdown(normalizedWithTitle), 'utf8');
   }
 
-  console.log(JSON.stringify({ ok: true, stage, slug, executionMode, draftPath, critiquePath, lintReportPath, lintScore: lintAfter.score, autoFixed: fixed.changed }, null, 2));
+  console.log(JSON.stringify({ ok: true, stage, slug, executionMode, draftPath, critiquePath, lintReportPath, lintScore: lintAfter.score, autoFixed: fixed.changed, inlineSvgPlaceholders: inlineSvgPlaceholders.length }, null, 2));
   process.exit(0);
 }
 
@@ -241,4 +266,4 @@ const outMd = matter.stringify(translated, outFrontmatter);
 const outPath = path.join(dir, `${lang}.md`);
 await fs.writeFile(outPath, outMd, 'utf-8');
 
-console.log(JSON.stringify({ ok: true, stage, slug, lang, executionMode, outPath, lintReportPath, lintScore: lintAfter.score, autoFixed: fixed.changed }, null, 2));
+console.log(JSON.stringify({ ok: true, stage, slug, lang, executionMode, outPath, lintReportPath, lintScore: lintAfter.score, autoFixed: fixed.changed, inlineSvgPlaceholders: inlineSvgPlaceholders.length }, null, 2));

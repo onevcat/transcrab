@@ -9,6 +9,7 @@ import { getPipelineSteps, materializePipelineArtifacts, resolveExecutionMode } 
 import { inferAutoProfile } from './lib/auto-profile.mjs';
 import { makeSlug } from './transcrab-core.mjs';
 import { resolveSourceToMarkdown } from './lib/source-resolver.mjs';
+import { extractInlineSvgFigurePlaceholders } from './lib/inline-svg-placeholders.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -56,14 +57,22 @@ const { slug, dir } = await makeUniqueSlugDir(baseSlug);
 const now = new Date();
 const date = now.toISOString();
 
+const svgPlaceholderPack = extractInlineSvgFigurePlaceholders(markdown);
 const sourceFrontmatter = {
   title: title || slug,
   date,
   sourceUrl: url,
   lang: 'source',
 };
-const sourceMd = matter.stringify(markdown, sourceFrontmatter);
+const sourceMd = matter.stringify(svgPlaceholderPack.markdown, sourceFrontmatter);
 await fs.writeFile(path.join(dir, 'source.md'), sourceMd, 'utf-8');
+if (svgPlaceholderPack.placeholders.length > 0) {
+  await fs.writeFile(
+    path.join(dir, 'inline-svg.placeholders.json'),
+    JSON.stringify(svgPlaceholderPack.placeholders, null, 2) + '\n',
+    'utf-8'
+  );
+}
 
 const { config: configuredProfile, loadedFromFile, configPath: resolvedConfigPath } = await loadTranslateConfig({
   cwd: ROOT,
@@ -76,7 +85,7 @@ const { config: configuredProfile, loadedFromFile, configPath: resolvedConfigPat
 });
 
 const autoProfile = configuredProfile.mode === 'auto'
-  ? inferAutoProfile(markdown, configuredProfile)
+  ? inferAutoProfile(svgPlaceholderPack.markdown, configuredProfile)
   : null;
 
 const translationProfile = autoProfile
@@ -97,6 +106,7 @@ const meta = {
   sourceUrl: url,
   targetLang: lang,
   extraction,
+  inlineSvgPlaceholders: svgPlaceholderPack.placeholders.length,
   translationProfile: {
     mode: translationProfile.mode,
     audience: translationProfile.audience,
@@ -115,7 +125,7 @@ const promptPath = path.join(dir, 'translate.prompt.txt');
 const promptCompatPath = path.join(dir, `translate.${lang}.prompt.txt`);
 const materialized = await materializePipelineArtifacts({
   outputDir: dir,
-  markdown,
+  markdown: svgPlaceholderPack.markdown,
   lang,
   profile: {
     ...translationProfile,
@@ -175,6 +185,7 @@ console.log(
       mm,
       articlePath,
       extraction,
+      inlineSvgPlaceholders: svgPlaceholderPack.placeholders.length,
       translationProfile: {
         ...translationProfile,
         steps,
