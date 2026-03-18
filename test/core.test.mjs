@@ -71,6 +71,29 @@ test('transcrab-core: normalizes multiline linked images into markdown link-imag
   assert.doesNotMatch(markdown, /\[\s*\n\s*!\[]\(/m);
 });
 
+test('transcrab-core: absolutizes root-relative asset URLs in extracted content', async () => {
+  const html = `<!doctype html>
+  <html><head><meta charset="utf-8" /><title>Assets</title></head>
+  <body>
+    <article>
+      <div class="available-content">
+        <div class="body markup">
+          <p>Intro Intro Intro Intro Intro Intro Intro Intro Intro Intro Intro Intro Intro Intro Intro Intro Intro Intro Intro Intro.</p>
+          <figure>
+            <img src="/alphazero-fig5.jpg" alt="fig" />
+            <figcaption><a href="/ref/page">ref</a></figcaption>
+          </figure>
+        </div>
+      </div>
+    </article>
+  </body></html>`;
+
+  const { markdown } = await htmlToMarkdown(html, 'https://randomlabs.ai/blog/slate');
+  assert.match(markdown, /https:\/\/randomlabs\.ai\/alphazero-fig5\.jpg/);
+  assert.match(markdown, /https:\/\/randomlabs\.ai\/ref\/page/);
+  assert.doesNotMatch(markdown, /src="\//);
+});
+
 test('transcrab-core: buildTranslatePrompt contains contract and content', () => {
   const md = '# T\n\nHello';
   const prompt = buildTranslatePrompt(md, 'zh');

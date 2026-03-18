@@ -39,3 +39,10 @@ test('buildTranslatePrompt: refined mode contains review and polish guidance', (
   assert.match(prompt, /审校/);
   assert.match(prompt, /润色/);
 });
+
+test('buildTranslatePrompt: includes placeholder preservation contract for inline SVG tokens', () => {
+  const prompt = buildTranslatePrompt('@@FIGURE_SVG_001@@\n\ntext', 'zh', { mode: 'normal' });
+  assert.match(prompt, /@@FIGURE_SVG_001@@/);
+  assert.match(prompt, /占位符/);
+  assert.match(prompt, /原样保留/);
+});

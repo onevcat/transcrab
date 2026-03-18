@@ -94,6 +94,8 @@ function evaluateMarkdownQuality(markdown) {
   const headings = lines.filter((l) => /^#{1,6}\s+/.test(l)).length;
   const codeFences = lines.filter((l) => /^```/.test(l)).length / 2;
   const images = lines.filter((l) => /!\[[^\]]*\]\([^\)]+\)/.test(l)).length;
+  const inlineSvgs = (raw.match(/<svg\b/gi) || []).length;
+  const htmlFigures = (raw.match(/<figure\b/gi) || []).length;
 
   const paragraphs = raw
     .split(/\n\s*\n/g)
@@ -108,7 +110,9 @@ function evaluateMarkdownQuality(markdown) {
     paragraphs * 8 +
     headings * 5 +
     codeFences * 6 +
-    images * 4;
+    images * 4 +
+    htmlFigures * 20 +
+    inlineSvgs * 120;
 
   return {
     chars,
@@ -116,6 +120,8 @@ function evaluateMarkdownQuality(markdown) {
     headings,
     codeFences,
     images,
+    htmlFigures,
+    inlineSvgs,
     score: Math.round(score),
   };
 }
@@ -270,7 +276,7 @@ async function extractViaAgentBrowser(url) {
   const run = spawnSync('zsh', ['-lc', cmd], { encoding: 'utf8', timeout: 120000 });
   if (run.status !== 0) return null;
 
-  const rendered = String(run.stdout || '').trim();
+  const rendered = decodeAgentBrowserOutput(run.stdout || '');
   if (!rendered || rendered.length < 500) return null;
 
   // Wrap fragment as html for parser stability.
@@ -315,6 +321,27 @@ function parseJinaReadOutput(raw) {
     title,
     markdown,
   };
+}
+
+function decodeAgentBrowserOutput(raw) {
+  const text = String(raw || '');
+  const lines = text.split(/\r?\n/);
+  const start = lines.findIndex((l) => l.startsWith('--- AGENT_BROWSER_PAGE_CONTENT'));
+  const end = lines.findIndex((l) => l.startsWith('--- END_AGENT_BROWSER_PAGE_CONTENT'));
+  if (start < 0 || end < 0 || end <= start) return text.trim();
+
+  const chunk = lines.slice(start + 1, end).join('\n').trim();
+  if (!chunk) return '';
+
+  try {
+    const parsed = JSON.parse(chunk);
+    if (typeof parsed === 'string') return parsed;
+    if (parsed && typeof parsed === 'object' && typeof parsed.html === 'string') return parsed.html;
+    return chunk;
+  } catch {
+    // If it's not JSON (or includes extra noise), return as-is.
+    return chunk;
+  }
 }
 
 function shellQuote(s) {
