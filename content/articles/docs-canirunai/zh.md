@@ -4,74 +4,74 @@ date: '2026-03-20T02:55:47.121Z'
 sourceUrl: 'https://www.canirun.ai/docs'
 lang: zh
 ---
-Key terms and concepts used on CanIRun.ai, explained simply.
+CanIRun.ai 上使用的关键术语和概念，简单解释。
 
-## Parameters
+## 参数
 
-When you see "7B" or "70B", that's the number of parameters (weights) in the model — in billions. More parameters generally means the model is smarter and more capable, but also needs more memory and is slower to run. A 7B model is great for basic tasks, 13B–34B is a solid sweet spot, and 70B+ delivers near-frontier quality but needs serious hardware.
+当你看到"7B"或"70B"时，那是模型的参数数量（权重）——以十亿为单位。更多参数通常意味着模型更聪明、能力更强，但也需要更多内存且运行更慢。7B 模型适合基本任务，13B-34B 是不错的甜点，70B+ 提供接近前沿的质量但需要强大的硬件。
 
-Size vs capability tradeoff
+大小与能力权衡
 
-1-3B Fast 7-8B Good 13-14B Better 27-34B Great 70B Excellent 405B+ Frontier ↑ Smarter ↓ Faster
+1-3B 快 7-8B 好 13-14B 更好 27-34B 很好 70B 优秀 405B+ 前沿 ↑ 更聪明 ↓ 更快
 
-## Quantization
+## 量化
 
-Quantization reduces the precision of a model's weights to make it smaller and faster, at the cost of some quality. The names tell you the bit-width:
+量化降低模型权重的精度，使其更小更快，代价是一些质量。名称告诉你位宽：
 
-Quality vs size (for a 7B model)
+质量与大小（7B 模型）
 
-Format Quality Size F16 ~13 GB 100% Q8_0 ~6.7 GB ~99% Q6_K ~5.3 GB ~95% Q4_K_M ~3.9 GB ~88% ★ Q2_K ~2.5 GB ~60% Bar = quality retention vs original • ★ = best balance
+格式 质量 大小 F16 ~13 GB 100% Q8_0 ~6.7 GB ~99% Q6_K ~5.3 GB ~95% Q4_K_M ~3.9 GB ~88% ★ Q2_K ~2.5 GB ~60% 条形 = 相对于原始质量保留 • ★ = 最佳平衡
 
-| Format | Bits | Quality | Notes |
+| 格式 | 位 | 质量 | 说明 |
 | --- | --- | --- | --- |
-| Q2_K | 2 | Low | Smallest size, noticeable quality loss |
-| Q4_K_M | 4 | Good | Best balance of size and quality — most popular |
-| Q6_K | 6 | Very good | Near-lossless, moderate size increase |
-| Q8_0 | 8 | Excellent | Minimal quality loss, larger file |
-| F16 | 16 | Original | Full precision, largest size |
+| Q2_K | 2 | 低 | 最小尺寸，明显质量损失 |
+| Q4_K_M | 4 | 好 | 大小和质量的平衡——最受欢迎 |
+| Q6_K | 6 | 很好 | 接近无损，尺寸适中增加 |
+| Q8_0 | 8 | 优秀 | 最小质量损失，文件更大 |
+| F16 | 16 | 原始 | 完整精度，最大尺寸 |
 
 ## VRAM
 
-VRAM is the memory on your GPU. To run a model, the entire quantized file needs to fit in VRAM (or in unified memory on Apple Silicon). If a model needs 8 GB of VRAM and your GPU has 6 GB, it won't run well — it'll either fail or fall back to much slower CPU inference.
+VRAM 是 GPU 上的内存。要运行模型，整个量化文件需要放入 VRAM（或 Apple Silicon 的统一内存）。如果模型需要 8 GB VRAM 而你的 GPU 只有 6 GB，它运行不好——要么失败，要么回退到慢得多的 CPU 推理。
 
-## MoE (Mixture of Experts)
+## MoE（专家混合）
 
-A Mixture of Experts model splits its parameters into groups called "experts." On each token, only a few experts are active — for example, Mixtral 8x7B has 46.7B total parameters but only activates ~12.9B per token. This means you get the quality of a larger model with the speed of a smaller one. The tradeoff: the full model still needs to fit in memory, even though only part of it runs at inference time.
+专家混合模型将其参数分成称为"专家"的组。在每个 token 上，只有少数专家是活跃的——例如，Mixtral 8x7B 有 46.7B 总参数但每个 token 只激活约 12.9B。这意味着你用较小模型的速度获得较大模型的质量。权衡：完整模型仍需要放入内存，即使只有部分在推理时运行。
 
-MoE expert routing (Mixtral example)
+MoE 专家路由（Mixtral 示例）
 
-Token Router top-2 Expert 1 ✓ Expert 2 ✓ Expert 3 Expert 4 ... ×8 experts total Output Active: ~12.9B Total: 46.7B VRAM: all 46.7B
+Token 路由器 top-2 专家 1 ✓ 专家 2 ✓ 专家 3 专家 4 ... ×8 专家总计 输出 活跃：~12.9B 总计：46.7B VRAM：全部 46.7B
 
-## Dense vs MoE Architecture
+## Dense 与 MoE 架构
 
-A **dense** model activates all its parameters for every token — what you see is what you get. A **MoE** model has more total parameters but only uses a subset per token. Dense models are simpler and more predictable in terms of memory/speed. MoE models can punch above their weight in quality but need more VRAM than their active parameter count suggests.
+**Dense** 模型为每个 token 激活所有参数——你看到的就是你得到的。**MoE** 模型有更多总参数但每个 token 只使用子集。Dense 模型在内存/速度方面更简单更可预测。MoE 模型在质量上可以打出超出其重量的拳，但需要比其活跃参数数量暗示的更多 VRAM。
 
-## Context Length
+## 上下文长度
 
-Context length is how many tokens the model can process at once — input and output combined. A "128K context" model can handle roughly 100,000 words in a single conversation. Longer context is great for analyzing documents or long conversations, but uses more memory. Most local usage works fine with 4K–8K context.
+上下文长度是模型一次可以处理的 token 数量——输入和输出合计。"128K 上下文"模型可以在单次对话中处理大约 100,000 个词。更长的上下文对分析文档或长对话很棒，但使用更多内存。大多数本地使用 4K-8K 上下文即可。
 
-## Tokens per Second (tok/s)
+## 每秒 Token（tok/s）
 
-This is the inference speed — how fast the model generates text. A rough guide:
+这是推理速度——模型生成文本的速度。粗略指南：
 
-*   60+ tok/s — Instant feel, great for interactive use
-*   30–60 tok/s — Fast and comfortable
-*   15–30 tok/s — Usable, slight wait
-*   5–15 tok/s — Workable for batch tasks
-*   <5 tok/s — Painful for interactive use
+*   60+ tok/s —— 即时感觉，交互使用很棒
+*   30-60 tok/s —— 快速舒适
+*   15-30 tok/s —— 可用，略有等待
+*   5-15 tok/s —— 批处理任务可用
+*   <5 tok/s —— 交互使用痛苦
 
-## GGUF Format
+## GGUF 格式
 
-GGUF is the file format used by [llama.cpp](https://github.com/ggerganov/llama.cpp) and tools like Ollama, LM Studio, and GPT4All. It stores quantized model weights in a single file that's ready to run on CPU or GPU. When you download a model from HuggingFace for local use, you're usually looking for the GGUF version.
+GGUF 是 [llama.cpp](https://github.com/ggerganov/llama.cpp) 和 Ollama、LM Studio、GPT4All 等工具使用的文件格式。它以单个文件存储量化模型权重，可在 CPU 或 GPU 上运行。当你从 HuggingFace 下载模型用于本地时，通常找的是 GGUF 版本。
 
-## Memory Bandwidth
+## 内存带宽
 
-Memory bandwidth (measured in GB/s) determines how fast data can be read from VRAM. During inference, the bottleneck is reading model weights from memory — so higher bandwidth means more tokens per second. This is why Apple Silicon Macs (with high unified memory bandwidth) can run larger models surprisingly well, and why an RTX 4090 generates text faster than an RTX 4060 even at the same VRAM usage.
+内存带宽（以 GB/s 为单位）决定从 VRAM 读取数据的速度。推理期间，瓶颈是从内存读取模型权重——所以更高带宽意味着更多每秒 token。这就是为什么 Apple Silicon Mac（高统一内存带宽）可以惊人地运行较大模型，以及为什么 RTX 4090 即使在相同 VRAM 使用下也比 RTX 4060 生成文本更快。
 
-Memory bandwidth comparison (GB/s)
+内存带宽对比（GB/s）
 
-RTX 4060 272 M4 Pro 273 RTX 4070 504 M4 Max 546 7900 XTX 960 RTX 4090 1008 RTX 5090 1792 Higher bandwidth = faster tok/s at same model size
+RTX 4060 272 M4 Pro 273 RTX 4070 504 M4 Max 546 7900 XTX 960 RTX 4090 1008 RTX 5090 1792 更高带宽 = 相同模型大小下更快 tok/s
 
-Built by [midudev](https://midu.dev/) for the local AI community
+由 [midudev](https://midu.dev/) 为本地 AI 社区构建
 
-All product names, logos, and brands are property of their respective owners. Apple, NVIDIA, AMD, Intel, Qualcomm, and all AI model names mentioned on this site are trademarks or registered trademarks of their respective holders. This site is not affiliated with or endorsed by any of these companies.
+所有产品名称、标志和品牌均为其各自所有者的财产。Apple、NVIDIA、AMD、Intel、Qualcomm 以及本网站提及的所有 AI 模型名称均为其各自持有者的商标或注册商标。本网站不隶属于或受任何这些公司认可。
