@@ -9,12 +9,12 @@ const baseUrl = import.meta.env.BASE_URL;
     <title>{title}</title>
     {description ? <meta name="description" content={description} /> : null}
 
-    <link rel="icon" href="/favicon-32.png" sizes="32x32" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
+    <link rel="icon" href={baseUrl + "favicon-32.png"} sizes="32x32" />
+    <link rel="apple-touch-icon" href={baseUrl + "apple-touch-icon.png"} sizes="180x180" />
 
     <!-- Code highlight themes (we toggle by JS to support manual theme switching) -->
-    <link id="hljs-light" rel="stylesheet" href="/hljs/github.css" />
-    <link id="hljs-dark" rel="stylesheet" href="/hljs/kanagawabones.css" />
+    <link id="hljs-light" rel="stylesheet" href={baseUrl + "hljs/github.css"} />
+    <link id="hljs-dark" rel="stylesheet" href={baseUrl + "hljs/kanagawabones.css"} />
 
     <style is:global>
       :root {
@@ -235,7 +235,7 @@ const baseUrl = import.meta.env.BASE_URL;
   <body>
     <header class="site-header">
       <a class="brand" href={baseUrl} aria-label="TransCrab Home">
-        <img class="brand-mark" src="/assets/transcrab-mark.png" alt="" aria-hidden="true" />
+        <img class="brand-mark" src={baseUrl + "assets/transcrab-mark.png"} alt="" aria-hidden="true" />
         <span>TransCrab</span>
       </a>
 
