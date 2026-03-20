@@ -1,0 +1,13 @@
+{
+  "before": {
+    "ok": true,
+    "score": 100,
+    "issues": []
+  },
+  "after": {
+    "ok": true,
+    "score": 100,
+    "issues": []
+  },
+  "autoFixed": false
+}
