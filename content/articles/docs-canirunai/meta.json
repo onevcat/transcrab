@@ -1,0 +1,46 @@
+{
+  "slug": "docs-canirunai",
+  "title": "Docs — CanIRun.ai",
+  "date": "2026-03-20T02:55:47.121Z",
+  "sourceUrl": "https://www.canirun.ai/docs",
+  "targetLang": "zh",
+  "translationProfile": {
+    "mode": "auto",
+    "audience": "technical",
+    "style": "technical",
+    "steps": [
+      "auto-analyze",
+      "translate"
+    ],
+    "executionMode": "refined",
+    "autoProfile": {
+      "requestedMode": "auto",
+      "topic": "technology",
+      "confidence": 0.88,
+      "resolved": {
+        "mode": "refined",
+        "style": "technical",
+        "audience": "technical",
+        "chunkThreshold": 4000,
+        "chunkMaxWords": 5000,
+        "glossary": []
+      },
+      "metrics": {
+        "words": 813,
+        "codeBlocks": 0,
+        "tableRows": 7,
+        "headings": 9,
+        "links": 2,
+        "businessHits": 0,
+        "lifeHits": 0,
+        "isLong": false,
+        "isVeryLong": false,
+        "isTechnical": true
+      },
+      "reasons": [
+        "公开发布默认使用 refined 流程，优先质量与稳定性",
+        "检测到代码块或表格，判定为技术主题"
+      ]
+    }
+  }
+}
