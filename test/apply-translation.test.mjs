@@ -176,3 +176,57 @@ test('apply-translation.mjs: final stage writes revision notes for refined flow'
   assert.ok(fs.existsSync(path.join(dir, 'zh.md')));
   assert.ok(fs.existsSync(path.join(dir, '05-revision.md')));
 });
+
+test('apply-translation.mjs: restores inline SVG placeholders in output', () => {
+  const { tmp, contentRoot, slug, dir } = setupArticleFixture();
+
+  writeFileSync(
+    path.join(dir, 'inline-svg.placeholders.json'),
+    JSON.stringify([
+      {
+        id: '@@FIGURE_SVG_001@@',
+        html: '<figure><p class="figure-title">Demo</p><svg><text>demo</text></svg></figure>',
+      },
+    ], null, 2),
+    'utf8'
+  );
+
+  const translated = `# 标题\n\n段落前。\n\n@@FIGURE_SVG_001@@\n\n段落后。`;
+  const inFile = path.join(tmp, 'with-placeholder.md');
+  writeFileSync(inFile, translated, 'utf8');
+
+  const script = path.resolve('scripts/apply-translation.mjs');
+  const r = spawnSync(process.execPath, [script, slug, '--lang', 'zh', '--in', inFile, '--stage', 'final'], {
+    env: { ...process.env, TRANSCRAB_CONTENT_ROOT: contentRoot },
+    encoding: 'utf8',
+  });
+  assert.equal(r.status, 0, r.stderr || r.stdout);
+
+  const zh = readFileSync(path.join(dir, 'zh.md'), 'utf8');
+  assert.doesNotMatch(zh, /@@FIGURE_SVG_001@@/);
+  assert.match(zh, /<figure>/);
+  assert.match(zh, /<svg>/);
+});
+
+test('apply-translation.mjs: fails when inline SVG placeholders are missing', () => {
+  const { tmp, contentRoot, slug, dir } = setupArticleFixture();
+
+  writeFileSync(
+    path.join(dir, 'inline-svg.placeholders.json'),
+    JSON.stringify([{ id: '@@FIGURE_SVG_001@@', html: '<figure><svg></svg></figure>' }], null, 2),
+    'utf8'
+  );
+
+  const translated = `# 标题\n\n没有占位符。`;
+  const inFile = path.join(tmp, 'missing-placeholder.md');
+  writeFileSync(inFile, translated, 'utf8');
+
+  const script = path.resolve('scripts/apply-translation.mjs');
+  const r = spawnSync(process.execPath, [script, slug, '--lang', 'zh', '--in', inFile], {
+    env: { ...process.env, TRANSCRAB_CONTENT_ROOT: contentRoot },
+    encoding: 'utf8',
+  });
+
+  assert.notEqual(r.status, 0);
+  assert.match(r.stderr + r.stdout, /Missing inline SVG placeholders/);
+});

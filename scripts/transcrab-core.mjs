@@ -32,6 +32,7 @@ export async function htmlToMarkdown(html, baseUrl) {
 
   const contentDom = new JSDOM(contentHtml, { url: baseUrl });
   applyCodeLangHints(contentDom.window.document, langHints);
+  absolutizeAssetUrls(contentDom.window.document, baseUrl);
   const patchedHtml = contentDom.window.document.body?.innerHTML || contentHtml;
 
   const turndown = new TurndownService({
@@ -39,6 +40,14 @@ export async function htmlToMarkdown(html, baseUrl) {
     codeBlockStyle: 'fenced',
     emDelimiter: '*',
   });
+
+  // Preserve inline diagram blocks (especially SVG inside <figure>) so we can
+  // rehydrate them in-place during translation apply.
+  turndown.keep([
+    'figure', 'figcaption', 'svg', 'defs', 'g', 'path', 'rect', 'circle', 'ellipse',
+    'line', 'polyline', 'polygon', 'text', 'marker', 'pattern', 'lineargradient',
+    'radialgradient', 'stop', 'clippath', 'mask', 'symbol', 'use',
+  ]);
 
   const fenceLangCounts = new Map();
   const bump = (lang) => {
@@ -121,6 +130,29 @@ function pickDirectContentHtml(doc) {
   }
 
   return null;
+}
+
+function absolutizeAssetUrls(doc, baseUrl) {
+  if (!doc || !baseUrl) return;
+
+  const attrs = ['src', 'href', 'poster'];
+  for (const attr of attrs) {
+    for (const el of doc.querySelectorAll(`[${attr}]`)) {
+      const raw = (el.getAttribute(attr) || '').trim();
+      if (!raw) continue;
+      if (raw.startsWith('http://') || raw.startsWith('https://')) continue;
+      if (raw.startsWith('//')) continue;
+      if (raw.startsWith('#')) continue;
+      if (raw.startsWith('data:')) continue;
+
+      try {
+        const abs = new URL(raw, baseUrl).toString();
+        el.setAttribute(attr, abs);
+      } catch {
+        // ignore malformed URL attributes
+      }
+    }
+  }
 }
 
 function normalizeLinkedImageBlocks(md) {

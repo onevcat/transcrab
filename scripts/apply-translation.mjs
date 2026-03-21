@@ -183,6 +183,19 @@ translated = translated
 
 translated = normalizeEmphasisSpacing(translated);
 
+const inlineSvgPlaceholders = await loadInlineSvgPlaceholders(dir);
+if (inlineSvgPlaceholders.length > 0) {
+  const restored = restoreInlineSvgFigurePlaceholders(translated, inlineSvgPlaceholders);
+  if (restored.missing.length > 0) {
+    const preview = restored.missing.slice(0, 5).join(', ');
+    throw new Error(
+      `Missing inline SVG placeholders in translation (${restored.missing.length} missing). ` +
+      `Keep tokens unchanged, e.g. ${preview}`
+    );
+  }
+  translated = restored.markdown;
+}
+
 // Quality gate phase A: deterministic lint + auto-fix for common CN punctuation issues.
 const lintBefore = lintTranslation(translated);
 const fixed = autoFixTranslation(translated);
@@ -233,7 +246,7 @@ if (stage === 'draft') {
     await fs.writeFile(critiquePath, quickCritiqueMarkdown(normalizedWithTitle), 'utf8');
   }
 
-  console.log(JSON.stringify({ ok: true, stage, slug, executionMode, draftPath, critiquePath, lintReportPath, lintScore: lintAfter.score, autoFixed: fixed.changed }, null, 2));
+  console.log(JSON.stringify({ ok: true, stage, slug, executionMode, draftPath, critiquePath, lintReportPath, lintScore: lintAfter.score, autoFixed: fixed.changed, inlineSvgPlaceholders: inlineSvgPlaceholders.length }, null, 2));
   process.exit(0);
 }
 
