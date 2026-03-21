@@ -1,0 +1,46 @@
+{
+  "slug": "introducing-the-new-full-stack-vibe-coding-experience-in-google-ai-studio",
+  "title": "Introducing the new full-stack vibe coding experience in Google AI Studio",
+  "date": "2026-03-21T09:24:43.982Z",
+  "sourceUrl": "https://x.com/GoogleAIStudio/status/2034654985850659149?s=20",
+  "targetLang": "zh",
+  "translationProfile": {
+    "mode": "auto",
+    "audience": "general",
+    "style": "conversational",
+    "steps": [
+      "auto-analyze",
+      "translate"
+    ],
+    "executionMode": "refined",
+    "autoProfile": {
+      "requestedMode": "auto",
+      "topic": "life",
+      "confidence": 0.76,
+      "resolved": {
+        "mode": "refined",
+        "style": "conversational",
+        "audience": "general",
+        "chunkThreshold": 4000,
+        "chunkMaxWords": 5000,
+        "glossary": []
+      },
+      "metrics": {
+        "words": 731,
+        "codeBlocks": 0,
+        "tableRows": 0,
+        "headings": 6,
+        "links": 10,
+        "businessHits": 0,
+        "lifeHits": 4,
+        "isLong": false,
+        "isVeryLong": false,
+        "isTechnical": false
+      },
+      "reasons": [
+        "公开发布默认使用 refined 流程，优先质量与稳定性",
+        "生活叙事关键词命中较高，判定为 life"
+      ]
+    }
+  }
+}

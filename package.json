@@ -8,6 +8,7 @@
     "build": "astro build",
     "preview": "astro preview",
     "add": "node scripts/add-url.mjs",
+    "backfill:categories": "node scripts/backfill-categories.mjs",
     "lint": "node -c scripts/add-url.mjs",
     "test": "node --test"
   },

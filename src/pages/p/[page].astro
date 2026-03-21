@@ -21,20 +21,40 @@ const totalPages = Math.max(1, Math.ceil(articles.length / PAGE_SIZE));
 const start = (page - 1) * PAGE_SIZE;
 const list = articles.slice(start, start + PAGE_SIZE);
 const base = import.meta.env.BASE_URL;
+const currentPath = `${base}p/${page}/`;
 
 const prevPath = page > 2 ? `${base}p/${page - 1}/` : base;
 const nextPath = page < totalPages ? `${base}p/${page + 1}/` : null;
+
+const categoryMap = new Map();
+for (const a of articles) {
+  if (!categoryMap.has(a.categorySlug)) {
+    categoryMap.set(a.categorySlug, { slug: a.categorySlug, name: a.category, count: 0 });
+  }
+  categoryMap.get(a.categorySlug).count += 1;
+}
+const categories = [...categoryMap.values()].sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
 ---
 
 <Base title="TransCrab" description="水淡如常，月照如初">
   <p class="meta" style="margin-top: 0.25rem;">水淡如常，月照如初</p>
 
+  <div class="category-tabs" data-category-tabs data-current-path={currentPath}>
+    <a href={currentPath} data-cat="all">全部 ({articles.length})</a>
+    {categories.map((c) => (
+      <a href={`${currentPath}?cat=${encodeURIComponent(c.slug)}`} data-cat={c.slug}>{c.name} ({c.count})</a>
+    ))}
+  </div>
+  <p class="meta" data-filter-summary>当前显示：全部</p>
+
   {list.length === 0 ? <p>暂无文章。</p> : null}
 
   {list.map((a) => (
-    <div style="padding: 1rem 0; border-bottom: 1px solid rgba(127,127,127,.25);">
+    <div data-article-item data-category={a.categorySlug} style="padding: 1rem 0; border-bottom: 1px solid rgba(127,127,127,.25);">
       <div><a href={`${base}a/${a.yyyy}/${a.mm}/${a.slug}/`}>{a.title}</a></div>
       <div class="meta">
+        <span>{a.category}</span>
+        {' '}·{' '}
         <span>{a.dateDisplay ?? ''}</span>
         {a.sourceUrl ? (
           <span>
@@ -45,12 +65,52 @@ const nextPath = page < totalPages ? `${base}p/${page + 1}/` : null;
       </div>
     </div>
   ))}
+  <p class="meta" data-empty-state style="display: none;">当前分类下暂无文章。</p>
 
-  <div class="nav" style="margin-top: 1rem;">
+  <div class="nav" style="margin-top: 1rem;" data-page-nav>
     {page > 1 ? <a href={prevPath}>← Prev</a> : null}
     {' '}
     <span class="meta">Page {page} / {totalPages}</span>
     {' '}
     {nextPath ? <a href={nextPath}>Next →</a> : null}
   </div>
+
+  <script>
+    (() => {
+      const params = new URLSearchParams(window.location.search);
+      const selected = params.get('cat') || 'all';
+      const rows = [...document.querySelectorAll('[data-article-item]')];
+      const tabs = [...document.querySelectorAll('[data-category-tabs] a[data-cat]')];
+      const summary = document.querySelector('[data-filter-summary]');
+      const empty = document.querySelector('[data-empty-state]');
+      const nav = document.querySelector('[data-page-nav]');
+      const tabMap = new Map(tabs.map((t) => [t.dataset.cat || 'all', t]));
+
+      let visibleCount = 0;
+      for (const row of rows) {
+        const match = selected === 'all' || row.dataset.category === selected;
+        row.style.display = match ? '' : 'none';
+        if (match) visibleCount += 1;
+      }
+
+      for (const tab of tabs) {
+        if ((tab.dataset.cat || 'all') === selected) tab.classList.add('active');
+      }
+
+      if (summary) {
+        const activeText = tabMap.get(selected)?.textContent?.replace(/\(\d+\)\s*$/, '').trim() || '全部';
+        summary.textContent = `当前显示：${activeText}（本页 ${visibleCount} 篇）`;
+      }
+
+      if (empty) empty.style.display = visibleCount > 0 ? 'none' : '';
+
+      if (selected !== 'all' && nav) {
+        for (const link of nav.querySelectorAll('a[href]')) {
+          const url = new URL(link.getAttribute('href'), window.location.origin);
+          url.searchParams.set('cat', selected);
+          link.setAttribute('href', `${url.pathname}${url.search}${url.hash}`);
+        }
+      }
+    })();
+  </script>
 </Base>

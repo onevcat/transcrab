@@ -5,6 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import matter from 'gray-matter';
 import { lintTranslation, autoFixTranslation } from './lint-translation.mjs';
+import { classifyArticleCategory } from './lib/category-classifier.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -129,6 +130,25 @@ async function loadExecutionMode(dir) {
   }
 }
 
+async function updateMetaCategory(dir, category, categoryClassification = null) {
+  const metaPath = path.join(dir, 'meta.json');
+  let json = {};
+
+  try {
+    const raw = await fs.readFile(metaPath, 'utf8');
+    json = JSON.parse(raw);
+  } catch {
+    json = {};
+  }
+
+  json.category = category;
+  if (categoryClassification) {
+    json.categoryClassification = categoryClassification;
+  }
+
+  await fs.writeFile(metaPath, JSON.stringify(json, null, 2) + '\n', 'utf8');
+}
+
 const args = process.argv.slice(2);
 if (args.length === 0 || args.includes('-h') || args.includes('--help')) {
   usage();
@@ -237,8 +257,36 @@ const outFrontmatter = {
   lang,
 };
 
+const categoryDecision = await classifyArticleCategory({
+  contentRoot: CONTENT_ROOT,
+  title: outFrontmatter.title,
+  markdown: normalizedWithTitle,
+  currentSlug: slug,
+});
+
+outFrontmatter.category = categoryDecision.category;
+
 const outMd = matter.stringify(translated, outFrontmatter);
 const outPath = path.join(dir, `${lang}.md`);
 await fs.writeFile(outPath, outMd, 'utf-8');
+await updateMetaCategory(dir, categoryDecision.category, categoryDecision);
 
-console.log(JSON.stringify({ ok: true, stage, slug, lang, executionMode, outPath, lintReportPath, lintScore: lintAfter.score, autoFixed: fixed.changed }, null, 2));
+console.log(
+  JSON.stringify(
+    {
+      ok: true,
+      stage,
+      slug,
+      lang,
+      executionMode,
+      outPath,
+      lintReportPath,
+      lintScore: lintAfter.score,
+      autoFixed: fixed.changed,
+      category: categoryDecision.category,
+      categoryClassification: categoryDecision,
+    },
+    null,
+    2
+  )
+);

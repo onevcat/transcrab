@@ -4,6 +4,11 @@ import matter from 'gray-matter';
 import { marked } from 'marked';
 
 const CONTENT_ROOT = path.resolve(process.cwd(), 'content', 'articles');
+const TOPIC_CATEGORY_MAP = {
+  technology: '技术',
+  business: '商业',
+  life: '生活',
+};
 
 function ts(x) {
   if (!x) return null;
@@ -29,6 +34,35 @@ function dateDisplay(dateStr) {
   return s.length >= 10 ? s.slice(0, 10) : s;
 }
 
+function normalizeCategoryName(input) {
+  const text = String(input || '').trim();
+  if (!text) return null;
+  return text.replace(/\s+/g, ' ');
+}
+
+function categoryToSlug(input) {
+  const base = String(input || '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\u4e00-\u9fff]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return base || 'uncategorized';
+}
+
+function categoryFromMeta(meta) {
+  const explicit = normalizeCategoryName(meta?.category);
+  if (explicit) return explicit;
+
+  const topic = meta?.translationProfile?.autoProfile?.topic;
+  if (topic && TOPIC_CATEGORY_MAP[topic]) return TOPIC_CATEGORY_MAP[topic];
+
+  const audience = String(meta?.translationProfile?.audience || '').toLowerCase();
+  if (audience.includes('tech')) return TOPIC_CATEGORY_MAP.technology;
+  if (audience.includes('business')) return TOPIC_CATEGORY_MAP.business;
+
+  return null;
+}
+
 export async function listArticles() {
   let dirs = [];
   try {
@@ -48,11 +82,22 @@ export async function listArticles() {
     try {
       const raw = await fs.readFile(zhPath, 'utf-8');
       const fm = matter(raw);
+      let meta = null;
+      try {
+        const rawMeta = await fs.readFile(metaPath, 'utf-8');
+        meta = JSON.parse(rawMeta);
+      } catch {
+        meta = null;
+      }
 
       // NOTE: We use frontmatter `date` as the single source of truth.
       // It should be an ISO datetime string (preferred) or YYYY-MM-DD.
       const date = fm.data.date ?? null;
       const { yyyy, mm } = toYyyyMm(date);
+      const category =
+        normalizeCategoryName(fm.data.category) ||
+        categoryFromMeta(meta) ||
+        '其他';
 
       items.push({
         slug,
@@ -62,6 +107,8 @@ export async function listArticles() {
         date,
         dateDisplay: dateDisplay(date),
         sourceUrl: fm.data.sourceUrl ?? null,
+        category,
+        categorySlug: categoryToSlug(category),
       });
     } catch {
       // ignore
