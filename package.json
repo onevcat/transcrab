@@ -17,7 +17,7 @@
     "gray-matter": "^4.0.3",
     "highlight.js": "^11.9.0",
     "jsdom": "^26.0.0",
-    "markdown-it": "^14.1.0",
+    "markdown-it": "^14.1.1",
     "marked": "^17.0.1",
     "pangu": "^7.2.0",
     "slugify": "^1.6.6",
