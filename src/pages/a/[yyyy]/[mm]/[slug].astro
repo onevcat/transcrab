@@ -18,7 +18,10 @@ const { html, title, sourceUrl, dateDisplay } = article;
 ---
 
 <Base title={title}>
-  <div class="nav"><a href="/">← 返回</a></div>
+  <div class="article-top-nav">
+    <a href="/">← 返回</a>
+    <a class="about-btn" href="/about/">关于</a>
+  </div>
   <h1>{title}</h1>
   <div class="meta">
     {dateDisplay ? <span>{dateDisplay}</span> : null}
@@ -27,3 +30,27 @@ const { html, title, sourceUrl, dateDisplay } = article;
 
   <article set:html={html} />
 </Base>
+
+<style>
+  .article-top-nav {
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.8rem;
+  }
+
+  .about-btn {
+    text-decoration: none;
+    font-size: 0.92rem;
+    padding: 0.2rem 0.65rem;
+    border-radius: 999px;
+    border: 1px solid rgba(127, 127, 127, 0.28);
+    background: rgba(127, 127, 127, 0.08);
+  }
+
+  .about-btn:hover {
+    background: rgba(127, 127, 127, 0.14);
+    text-decoration: none;
+  }
+</style>
